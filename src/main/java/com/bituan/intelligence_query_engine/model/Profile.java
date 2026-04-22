@@ -6,6 +6,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.ZonedDateTime;
@@ -14,6 +16,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @AllArgsConstructor
+@NoArgsConstructor
 public class Profile {
     @Id
     @GeneratedValue
@@ -33,5 +36,8 @@ public class Profile {
 
     private String countryName;
     private double countryProbability;
+
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
     private ZonedDateTime createdAt;
 }
