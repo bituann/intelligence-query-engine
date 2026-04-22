@@ -1,19 +1,32 @@
 package com.bituan.intelligence_query_engine.repository.specification;
 
+import com.bituan.intelligence_query_engine.exception.BadRequest;
 import com.bituan.intelligence_query_engine.model.Profile;
 import org.springframework.data.jpa.domain.Specification;
 
 public class ProfileSpecs {
     public Specification<Profile> isGender (String gender) {
-        return (root, query, builder) -> gender == null || gender.isBlank() ? null : builder.equal(root.get("gender"), gender);
+        if (gender != null && gender.isBlank()) {
+            throw new BadRequest("Missing or empty parameter");
+        }
+
+        return (root, query, builder) -> gender == null ? null : builder.equal(root.get("gender"), gender);
     }
 
     public Specification<Profile> isAgeGroup (String ageGroup) {
-        return (root, query, builder) -> ageGroup == null || ageGroup.isBlank() ? null : builder.equal(root.get("ageGroup"), ageGroup);
+        if (ageGroup != null && ageGroup.isBlank()) {
+            throw new BadRequest("Missing or empty parameter");
+        }
+
+        return (root, query, builder) -> ageGroup == null ? null : builder.equal(root.get("ageGroup"), ageGroup);
     }
 
     public Specification<Profile> isCountryId (String countryId) {
-        return (root, query, builder) -> countryId == null || countryId.isBlank() ? null : builder.equal(root.get("countryId"), countryId);
+        if (countryId != null && countryId.isBlank()) {
+            throw new BadRequest("Missing or empty parameter");
+        }
+
+        return (root, query, builder) -> countryId == null ? null : builder.equal(root.get("countryId"), countryId);
     }
 
     public Specification<Profile> ageLessThan (Integer age) {
