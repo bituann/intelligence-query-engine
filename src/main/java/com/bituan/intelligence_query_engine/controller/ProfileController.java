@@ -1,6 +1,7 @@
 package com.bituan.intelligence_query_engine.controller;
 
 import com.bituan.intelligence_query_engine.exception.BadRequest;
+import com.bituan.intelligence_query_engine.exception.UnprocessableEntity;
 import com.bituan.intelligence_query_engine.model.Profile;
 import com.bituan.intelligence_query_engine.model.ProfilesResponse;
 import com.bituan.intelligence_query_engine.model.QueryModel;
@@ -80,11 +81,13 @@ public class ProfileController {
             throw new BadRequest("Limit cannot be greater than 50");
         }
 
+        boolean canParse = false;
+
         ProfileSpecs profileSpecs = new ProfileSpecs();
         Specification<Profile> spec = Specification.where((root, q, builder) -> builder.conjunction());
 
         // Gender pattern
-        Pattern pattern = Pattern.compile("\\bmale|female", Pattern.CASE_INSENSITIVE);
+        Pattern pattern = Pattern.compile("\\b(male|female)", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(query);
 
         Set<String> foundGenders = new HashSet<>();
@@ -95,8 +98,9 @@ public class ProfileController {
             foundGenders.add(matcher.group());
         }
 
-        if (!(foundGenders.contains("male") && foundGenders.contains("female"))) {
+        if (!gender.isBlank() && !(foundGenders.contains("male") && foundGenders.contains("female"))) {
             spec = spec.and(profileSpecs.isGender(gender));
+            canParse = true;
         }
 
         // 'young' group
@@ -104,14 +108,17 @@ public class ProfileController {
             spec = spec
                     .and(profileSpecs.ageGreaterThan(16))
                     .and(profileSpecs.ageLessThan(24));
+
+            canParse = true;
         }
 
         // age group pattern
-        pattern = Pattern.compile("\\bchild|teenager|adult|senior", Pattern.CASE_INSENSITIVE);
+        pattern = Pattern.compile("\\b(child|teenager|adult|senior)", Pattern.CASE_INSENSITIVE);
         matcher = pattern.matcher(query);
 
         while (matcher.find()) {
             spec = spec.and(profileSpecs.isAgeGroup(matcher.group().toLowerCase()));
+            canParse = true;
         }
 
         // above age
@@ -120,6 +127,7 @@ public class ProfileController {
 
         while (matcher.find()) {
             spec = spec.and(profileSpecs.ageGreaterThan(Integer.valueOf(matcher.group(2))));
+            canParse = true;
         }
 
         // below age
@@ -128,6 +136,7 @@ public class ProfileController {
 
         while (matcher.find()) {
             spec = spec.and(profileSpecs.ageGreaterThan(Integer.valueOf(matcher.group(2))));
+            canParse = true;
         }
 
         // country
@@ -137,7 +146,12 @@ public class ProfileController {
 
             if (query.toLowerCase().contains(country.toLowerCase())) {
                 spec = spec.and(profileSpecs.isCountryId(locale.getCountry()));
+                canParse = true;
             }
+        }
+
+        if (!canParse) {
+            throw new UnprocessableEntity("Unable to interpret query");
         }
 
         // pagination
