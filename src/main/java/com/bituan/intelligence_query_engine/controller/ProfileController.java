@@ -87,15 +87,17 @@ public class ProfileController {
         Specification<Profile> spec = Specification.where((root, q, builder) -> builder.conjunction());
 
         // Gender pattern
-        Pattern pattern = Pattern.compile("\\b(male|female)", Pattern.CASE_INSENSITIVE);
+        Pattern pattern = Pattern.compile("\\b(male|female|men|women)", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(query);
 
         Set<String> foundGenders = new HashSet<>();
         String gender = "";
 
         while (matcher.find()) {
-            gender = matcher.group();
-            foundGenders.add(matcher.group());
+            gender = matcher.group().equals("men") ? "male"
+                    : matcher.group().equals("women") ? "female"
+                    : matcher.group();
+            foundGenders.add(gender);
         }
 
         if (!gender.isBlank() && !(foundGenders.contains("male") && foundGenders.contains("female"))) {
@@ -121,21 +123,35 @@ public class ProfileController {
             canParse = true;
         }
 
-        // above age
-        pattern = Pattern.compile("\\b(above|from)\\s+(\\d+)\\b", Pattern.CASE_INSENSITIVE);
+        // above age (age excluded) or from age (age included)
+        pattern = Pattern.compile("\\b(above|from|older\\s+than|over)\\s+(\\d+)\\b", Pattern.CASE_INSENSITIVE);
         matcher = pattern.matcher(query);
 
         while (matcher.find()) {
-            spec = spec.and(profileSpecs.ageGreaterThan(Integer.valueOf(matcher.group(2))));
+            String textBeforeNumber = matcher.group(1);
+
+            if (textBeforeNumber.equals("from")) {
+                spec = spec.and(profileSpecs.ageGreaterThanOrEqualTo(Integer.valueOf(matcher.group(2))));
+            } else {
+                spec = spec.and(profileSpecs.ageGreaterThan(Integer.valueOf(matcher.group(2))));
+            }
+
             canParse = true;
         }
 
         // below age
-        pattern = Pattern.compile("\\b(below|to)\\s+(\\d+)\\b", Pattern.CASE_INSENSITIVE);
+        pattern = Pattern.compile("\\b(below|to|younger\\s+than|under)\\s+(\\d+)\\b", Pattern.CASE_INSENSITIVE);
         matcher = pattern.matcher(query);
 
         while (matcher.find()) {
-            spec = spec.and(profileSpecs.ageGreaterThan(Integer.valueOf(matcher.group(2))));
+            String textBeforeNumber = matcher.group(1);
+
+            if (textBeforeNumber.equals("to")) {
+                spec = spec.and(profileSpecs.ageLessThanOrEqualTo(Integer.valueOf(matcher.group(2))));
+            } else {
+                spec = spec.and(profileSpecs.ageLessThan(Integer.valueOf(matcher.group(2))));
+            }
+
             canParse = true;
         }
 
