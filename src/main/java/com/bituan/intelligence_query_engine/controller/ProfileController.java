@@ -16,6 +16,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @RequiredArgsConstructor
 @CrossOrigin("*")
 @RestController
@@ -39,21 +45,107 @@ public class ProfileController {
         Pageable pageable = PageRequest.of(page, limit, sort);
         // --------- END :: HANDLE PAGINATION ------------- //
 
-        System.out.println(queryParams.getMax_age());
-
         // --------- APPLY FILTERS ----------------- //
         ProfileSpecs profileSpecs = new ProfileSpecs();
         Specification<Profile> spec = Specification
                 .where(profileSpecs.isGender(queryParams.getGender()))
                 .and(profileSpecs.isAgeGroup(queryParams.getAge_group()))
                 .and(profileSpecs.isCountryId(queryParams.getCountry_id()))
-                .and(profileSpecs.ageGreaterThan(queryParams.getMin_age()))
-                .and(profileSpecs.ageLessThan(queryParams.getMax_age()))
+                .and(profileSpecs.ageGreaterThanOrEqualTo(queryParams.getMin_age()))
+                .and(profileSpecs.ageLessThanOrEqualTo(queryParams.getMax_age()))
                 .and(profileSpecs.countryProbabilityGreaterThan(queryParams.getMin_country_probability()))
                 .and(profileSpecs.genderProbabilityGreaterThan(queryParams.getMin_gender_probability()));
 
         Page<Profile> profilePage = profileRepository.findAll(spec, pageable);
         // --------- END :: APPLY FILTERS ----------------- //
+
+        ProfilesResponse response = ProfilesResponse.builder()
+                .status("success")
+                .page(profilePage.getNumber())
+                .limit(profilePage.getSize())
+                .total(profilePage.getNumberOfElements())
+                .data(profilePage.toList())
+                .build();
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping("/profiles/search")
+    public ResponseEntity<ProfilesResponse> getProfilesByNaturalLanguage (@RequestParam("q") String query, @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer limit) {
+        if (query.isBlank()) {
+            throw new BadRequest("Missing or empty parameter");
+        }
+
+        if (limit != null && limit > 50) {
+            throw new BadRequest("Limit cannot be greater than 50");
+        }
+
+        ProfileSpecs profileSpecs = new ProfileSpecs();
+        Specification<Profile> spec = Specification.where((root, q, builder) -> builder.conjunction());
+
+        // Gender pattern
+        Pattern pattern = Pattern.compile("\\bmale|female", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(query);
+
+        Set<String> foundGenders = new HashSet<>();
+        String gender = "";
+
+        while (matcher.find()) {
+            gender = matcher.group();
+            foundGenders.add(matcher.group());
+        }
+
+        if (!(foundGenders.contains("male") && foundGenders.contains("female"))) {
+            spec = spec.and(profileSpecs.isGender(gender));
+        }
+
+        // 'young' group
+        if (query.contains("young")) {
+            spec = spec
+                    .and(profileSpecs.ageGreaterThan(16))
+                    .and(profileSpecs.ageLessThan(24));
+        }
+
+        // age group pattern
+        pattern = Pattern.compile("\\bchild|teenager|adult|senior", Pattern.CASE_INSENSITIVE);
+        matcher = pattern.matcher(query);
+
+        while (matcher.find()) {
+            spec = spec.and(profileSpecs.isAgeGroup(matcher.group().toLowerCase()));
+        }
+
+        // above age
+        pattern = Pattern.compile("\\b(above|from)\\s+(\\d+)\\b", Pattern.CASE_INSENSITIVE);
+        matcher = pattern.matcher(query);
+
+        while (matcher.find()) {
+            spec = spec.and(profileSpecs.ageGreaterThan(Integer.valueOf(matcher.group(2))));
+        }
+
+        // below age
+        pattern = Pattern.compile("\\b(below|to)\\s+(\\d+)\\b", Pattern.CASE_INSENSITIVE);
+        matcher = pattern.matcher(query);
+
+        while (matcher.find()) {
+            spec = spec.and(profileSpecs.ageGreaterThan(Integer.valueOf(matcher.group(2))));
+        }
+
+        // country
+        for (String iso : Locale.getISOCountries()) {
+            Locale locale = new Locale("", iso);
+            String country = locale.getDisplayCountry();
+
+            if (query.toLowerCase().contains(country.toLowerCase())) {
+                spec = spec.and(profileSpecs.isCountryId(locale.getCountry()));
+            }
+        }
+
+        // pagination
+        page = page == null ? 0 : page;
+        limit = limit == null ? 10 : limit;
+        Pageable pageable = PageRequest.of(page, limit);
+
+        Page<Profile> profilePage = profileRepository.findAll(spec, pageable);
 
         ProfilesResponse response = ProfilesResponse.builder()
                 .status("success")
