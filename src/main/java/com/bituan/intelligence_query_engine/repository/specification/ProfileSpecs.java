@@ -30,10 +30,18 @@ public class ProfileSpecs {
     }
 
     public Specification<Profile> ageLessThan (Integer age) {
-        return (root, query, builder) -> age == null ? null : builder.lessThanOrEqualTo(root.get("age"), age);
+        return (root, query, builder) -> age == null ? null : builder.lessThan(root.get("age"), age);
     }
 
     public Specification<Profile> ageGreaterThan (Integer age) {
+        return (root, query, builder) -> age == null ? null : builder.greaterThan(root.get("age"), age);
+    }
+
+    public Specification<Profile> ageLessThanOrEqualTo (Integer age) {
+        return (root, query, builder) -> age == null ? null : builder.lessThanOrEqualTo(root.get("age"), age);
+    }
+
+    public Specification<Profile> ageGreaterThanOrEqualTo (Integer age) {
         return (root, query, builder) -> age == null ? null : builder.greaterThanOrEqualTo(root.get("age"), age);
     }
 
