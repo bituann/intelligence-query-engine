@@ -108,8 +108,8 @@ public class ProfileController {
         // 'young' group
         if (query.contains("young")) {
             spec = spec
-                    .and(profileSpecs.ageGreaterThan(16))
-                    .and(profileSpecs.ageLessThan(24));
+                    .and(profileSpecs.ageGreaterThanOrEqualTo(16))
+                    .and(profileSpecs.ageLessThanOrEqualTo(24));
 
             canParse = true;
         }
