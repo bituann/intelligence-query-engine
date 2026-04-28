@@ -1,7 +1,10 @@
-package com.bituan.intelligence_query_engine.model;
+package com.bituan.intelligence_query_engine.model.entity;
 
+import com.bituan.intelligence_query_engine.enums.UserRole;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
@@ -10,30 +13,29 @@ import org.hibernate.annotations.UuidGenerator;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-@Table(name = "profiles")
+@Table(name = "users")
 @Entity
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Profile {
+@Builder
+public class User {
     @Id
     @GeneratedValue
     @UuidGenerator(algorithm = org.hibernate.id.uuid.UuidVersion7Strategy.class)
     private UUID id;
 
     @Column(unique = true)
-    private String name;
+    private String githubId;
 
-    private String gender;
-    private double genderProbability;
-    private int age;
-    private String ageGroup;
+    private String username;
+    private String email;
+    private String avatarUrl;
+    private UserRole role;
 
-    @Column(length = 2)
-    private String countryId;
-
-    private String countryName;
-    private double countryProbability;
+    @JsonProperty("is_active")
+    private boolean isActive;
+    private ZonedDateTime lastLoginAt;
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
