@@ -32,6 +32,12 @@ public class ErrorHandler {
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(Unauthorized.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedException (Unauthorized ex) {
+        ErrorResponse response = new ErrorResponse("error", ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(UnprocessableEntity.class)
     public ResponseEntity<ErrorResponse> handleUnprocessableEntityException (UnprocessableEntity ex) {
         ErrorResponse response = new ErrorResponse("error", ex.getMessage());
