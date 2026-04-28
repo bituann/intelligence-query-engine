@@ -1,6 +1,6 @@
 package com.bituan.intelligence_query_engine.model.response;
 
-import com.bituan.intelligence_query_engine.model.Profile;
+import com.bituan.intelligence_query_engine.model.entity.Profile;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

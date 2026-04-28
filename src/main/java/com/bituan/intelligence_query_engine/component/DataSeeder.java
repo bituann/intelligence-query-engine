@@ -1,6 +1,6 @@
 package com.bituan.intelligence_query_engine.component;
 import com.bituan.intelligence_query_engine.exception.ServerException;
-import com.bituan.intelligence_query_engine.model.Profile;
+import com.bituan.intelligence_query_engine.model.entity.Profile;
 import com.bituan.intelligence_query_engine.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
