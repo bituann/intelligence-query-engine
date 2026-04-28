@@ -49,14 +49,12 @@ public class JWTFilter extends OncePerRequestFilter {
             String token = header.substring(7);
 
             if (!tokenService.validateJwt(token)) {
-                System.out.println("here 1");
                 throw new Unauthorized("Invalid token");
             }
 
             UserDetails userDetails = tokenService.loadUserDetailsFromJwt(token);
 
             if (userDetails == null) {
-                System.out.println("here 2");
                 throw new Unauthorized("Invalid token");
             }
 

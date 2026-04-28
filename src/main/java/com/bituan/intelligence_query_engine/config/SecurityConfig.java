@@ -1,5 +1,7 @@
 package com.bituan.intelligence_query_engine.config;
 
+import com.bituan.intelligence_query_engine.exception.handlers.CustomAccessDeniedHandler;
+import com.bituan.intelligence_query_engine.exception.handlers.UnauthenticatedRequestHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,10 +21,17 @@ public class SecurityConfig {
     private final JWTFilter jwtFilter;
     private final APIVersionFilter apiVersionFilter;
 
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
+    private final UnauthenticatedRequestHandler unauthenticatedRequestHandler;
+
     @Bean
     public SecurityFilterChain securityFilterChain (HttpSecurity http) {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(unauthenticatedRequestHandler)
+                        .accessDeniedHandler(customAccessDeniedHandler)
+                )
                 .authorizeHttpRequests(req -> req
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/profiles").hasRole("ADMIN")
