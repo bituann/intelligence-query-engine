@@ -6,6 +6,7 @@ import com.bituan.intelligence_query_engine.model.entity.User;
 import com.bituan.intelligence_query_engine.repository.RefreshTokenRepository;
 import com.bituan.intelligence_query_engine.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.*;
@@ -64,11 +65,20 @@ public class TokenServiceImpl implements TokenService {
     public boolean validateJwt(String token) {
         Jwt jwt = decodeJwt(token);
 
-        return jwt != null &&
-                jwt.getExpiresAt() != null &&
-                jwt.getExpiresAt().isAfter(Instant.now()) &&
-                userRepository.existsById(UUID.fromString(jwt.getSubject()));
+        if (
+                jwt == null ||
+                jwt.getExpiresAt() == null ||
+                !jwt.getExpiresAt().isAfter(Instant.now()) ||
+                !userRepository.existsById(UUID.fromString(jwt.getSubject()))
+        ) {
+            return false;
+        }
 
+        if (!userRepository.findById(UUID.fromString(jwt.getSubject())).orElse(null).isActive()) {
+            throw new AccessDeniedException("User is inactive");
+        }
+
+        return true;
     }
 
     @Override
