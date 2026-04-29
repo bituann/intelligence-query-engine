@@ -17,26 +17,31 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @CrossOrigin("*")
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/profiles")
 public class ProfileController {
 
     private final ProfileRepository profileRepository;
     private final ProfileService profileService;
 
-    @GetMapping("/profiles")
+    @GetMapping("/")
     public ResponseEntity<ProfilesResponse> getProfiles (ProfileFilters filters, ProfilesPagination pagination) {
         GetProfilesRequestQueryModel queryParams = new GetProfilesRequestQueryModel(filters, pagination);
 
         return new ResponseEntity<>(profileService.getProfiles(queryParams), HttpStatus.OK);
     }
 
-    @PostMapping("/profiles")
+    @PostMapping("/")
     public ResponseEntity<ProfileResponse> addProfile (@RequestBody AddProfileRequest body) {
         return new ResponseEntity<>(profileService.addProfile(body.getName()), HttpStatus.OK);
     }
 
-    @GetMapping("/profiles/search")
+    @GetMapping("/search")
     public ResponseEntity<ProfilesResponse> getProfilesByNaturalLanguage (@RequestParam("q") String query, @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer limit) {
         return new ResponseEntity<>(profileService.getProfilesByNaturalLanguage(query, page, limit), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ProfileResponse> getProfile (@PathVariable("id") String id) {
+        return new ResponseEntity<>(profileService.getProfile(id), HttpStatus.OK);
     }
 }
