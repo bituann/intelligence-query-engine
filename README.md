@@ -1,88 +1,170 @@
-# Profile Query API – README
+# Intelligence Query Engine
 
-## Overview
+A Spring Boot REST API for Insighta Labs — a demographic intelligence platform used to segment users, identify patterns, and query large datasets using advanced filtering, sorting, pagination, and natural language search.
 
-This API provides two endpoints for retrieving profile data:
+---
 
-1. **Structured Query Endpoint** – `/api/profiles`
-   Uses explicit query parameters for filtering, sorting, and pagination.
+## Tech Stack
 
-2. **Natural Language Search Endpoint** – `/api/profiles/search`
-   Accepts free-text queries and converts them into structured filters using pattern matching.
+- Java 17
+- Spring Boot
+- PostgreSQL (via Neon)
+- JWT authentication (RSA key pair)
+- GitHub OAuth 2.0 with PKCE
 
-This document focuses on the **natural language search endpoint**, including supported query formats, keywords, behavior, and limitations.
+---
+
+## Prerequisites
+
+- Java 17+
+- Maven
+- A PostgreSQL database
+- A GitHub OAuth App
+
+---
+
+## Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/bituann/intelligence-query-engine.git
+cd intelligence-query-engine
+```
+
+### 2. Set up environment variables
+
+Create a `.env` file at the root or set the following variables in your environment:
+
+```env
+DB_URL=jdbc:postgresql://<host>/<database>
+DB_USERNAME=your_db_username
+DB_PASSWORD=your_db_password
+
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+GITHUB_REDIRECT_URL=http://localhost:8080/auth/callback
+
+RSA_PRIVATE_KEY=your_rsa_private_key
+RSA_PUBLIC_KEY=your_rsa_public_key
+
+SEED_DATA_URL=url_to_seed_data
+FRONTEND_AUTH_CALLBACK=http://localhost:3000/api/auth/callback
+```
+
+### 3. Run the application
+
+```bash
+./mvnw spring-boot:run
+```
+
+The API will be available at `http://localhost:8080`.
+
+---
+
+## Authentication
+
+Authentication uses GitHub OAuth 2.0. Two flows are supported:
+
+**Web portal flow:**
+1. Frontend requests the GitHub OAuth URL from `GET /auth/github/url`
+2. User is redirected to GitHub
+3. GitHub redirects to `GET /auth/callback`
+4. Backend sets HTTP-only cookies and redirects to the frontend callback
+
+**CLI flow (PKCE):**
+1. CLI generates a `code_verifier` and `code_challenge`
+2. CLI requests the GitHub OAuth URL with the challenge
+3. User completes OAuth in the browser
+4. GitHub redirects to the CLI's local callback server with the authorization code
+5. CLI exchanges the code + verifier directly with the backend
+6. Backend returns `{ access_token, refresh_token }` as JSON
+
+---
+
+## Roles
+
+| Role | Permissions |
+|---|---|
+| `admin` | Full access — create, delete, query profiles |
+| `analyst` | Read-only — list, search, view profiles |
+
+Default role on signup: `analyst`
+
+---
+
+## API Overview
+
+All `/api/*` endpoints require authentication via `Authorization: Bearer <token>` and the header `X-API-Version: 1`.
+
+### Auth Endpoints (`/auth/*`)
+Rate limit: 10 requests/minute
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/auth/github/url` | Get GitHub OAuth URL |
+| `GET` | `/auth/callback` | GitHub OAuth callback |
+| `POST` | `/auth/refresh` | Refresh access token |
+| `POST` | `/auth/logout` | Logout |
+| `GET` | `/auth/me` | Get current user |
+
+### Profile Endpoints (`/api/*`)
+Rate limit: 60 requests/minute per user
+
+| Method | Endpoint | Description | Role |
+|---|---|---|---|
+| `GET` | `/api/profiles` | List profiles with filters | analyst+ |
+| `GET` | `/api/profiles/:id` | Get profile by ID | analyst+ |
+| `GET` | `/api/profiles/search?q=` | Natural language search | analyst+ |
+| `POST` | `/api/profiles` | Create profile | admin |
+| `GET` | `/api/profiles/export` | Export profiles as CSV | analyst+ |
+
+[//]: # (| `DELETE` | `/api/profiles/:id` | Delete profile | admin |)
 
 ---
 
 ## Structured Query
 
-### Endpoint 
+### Endpoint
+
 ```
 GET /api/profiles
 ```
 
-Fetch a paginated list of profiles with optional filtering and sorting.
-
----
-
 ### Query Parameters
 
-| Parameter                 | Type    | Description                                          |
-| ------------------------- | ------- | ---------------------------------------------------- |
-| `page`                    | Integer | Page number (0-based). Default: `0`                  |
-| `limit`                   | Integer | Number of records per page. Default: `10`, Max: `50` |
-| `sort_By`                 | String  | Field name to sort by                                |
-| `order`                   | String  | Sort direction: `asc` or `desc`. Default: `asc`      |
-| `gender`                  | String  | Filter by gender                                     |
-| `age_group`               | String  | Filter by age group                                  |
-| `country_id`              | String  | Filter by country (ISO code)                         |
-| `min_age`                 | Integer | Minimum age (inclusive)                              |
-| `max_age`                 | Integer | Maximum age (inclusive)                              |
-| `min_country_probability` | Double  | Minimum country probability threshold                |
-| `min_gender_probability`  | Double  | Minimum gender probability threshold                 |
-
----
+| Parameter | Type | Description |
+|---|---|---|
+| `page` | Integer | Page number (0-based, default: `0`) |
+| `limit` | Integer | Records per page (default: `10`, max: `50`) |
+| `sort_by` | String | Field name to sort by |
+| `order` | String | Sort direction: `asc` or `desc` (default: `asc`) |
+| `gender` | String | Filter by gender |
+| `age_group` | String | Filter by age group |
+| `country_id` | String | Filter by ISO country code |
+| `min_age` | Integer | Minimum age (inclusive) |
+| `max_age` | Integer | Maximum age (inclusive) |
+| `min_gender_probability` | Double | Minimum gender probability threshold |
+| `min_country_probability` | Double | Minimum country probability threshold |
 
 ### Validation Rules
 
-* `limit` must not be greater than `50`
-* Invalid requests return `400 Bad Request`
-
----
+- `limit` must not exceed `50`
+- Invalid requests return `400 Bad Request`
 
 ### Sorting
 
-* Sorting is optional
-* If `sort_By` is not provided or blank, results are unsorted
-* `order` defaults to ascending if not specified or invalid
-
----
-
-### Pagination
-
-* `page` defaults to `0`
-* `limit` defaults to `10`
-* Uses standard offset-based pagination
-
----
+- Sorting is optional
+- If `sort_by` is not provided or blank, results are unsorted
+- `order` defaults to `asc` if not specified or invalid
 
 ### Filtering Logic
 
-Filters are combined using logical `AND`. Only records matching **all provided criteria** are returned.
+Filters are combined using logical `AND`. Only records matching all provided criteria are returned.
 
-Applied filters:
-
-* Exact match: `gender`, `age_group`, `country_id`
-* Range filters:
-
-    * `min_age` → `age >= value`
-    * `max_age` → `age <= value`
-* Probability thresholds:
-
-    * `country_probability >= min_country_probability`
-    * `gender_probability >= min_gender_probability`
-
----
+- Exact match: `gender`, `age_group`, `country_id`
+- Range filters: `min_age` → `age >= value`, `max_age` → `age <= value`
+- Probability thresholds: `country_probability >= min_country_probability`, `gender_probability >= min_gender_probability`
 
 ### Response Format
 
@@ -92,43 +174,36 @@ Applied filters:
   "page": 0,
   "limit": 10,
   "total": 10,
+  "total_pages": 1,
+  "links": {
+    "next": "/api/profiles?page=1&limit=10",
+    "prev": null,
+    "self": "/api/profiles?page=0&limit=10"
+  },
   "data": [
     {
       "id": "...",
+      "name": "...",
       "gender": "...",
-      "age": "...",
-      "country_id": "...",
-      "gender_probability": "...",
-      "country_probability": "..."
+      "genderProbability": 0.98,
+      "age": 25,
+      "ageGroup": "adult",
+      "countryId": "NG",
+      "countryName": "Nigeria",
+      "countryProbability": 0.91,
+      "createdAt": "..."
     }
   ]
 }
 ```
 
----
-
-### Response Fields
-
-| Field    | Description                           |
-| -------- | ------------------------------------- |
-| `status` | Response status                       |
-| `page`   | Current page number                   |
-| `limit`  | Number of records per page            |
-| `total`  | Number of records in the current page |
-| `data`   | List of profile objects               |
-
----
-
 ### Example Request
 
 ```
-GET /api/profiles?page=0&limit=5&gender=male&min_age=18&max_age=30&sort_By=age&order=desc
+GET /api/profiles?page=0&limit=5&gender=male&min_age=18&max_age=30&sort_by=age&order=desc
 ```
 
 ---
-
----
-
 
 ## Natural Language Search
 
@@ -140,235 +215,111 @@ GET /api/profiles/search?q=<query>&page=<page>&limit=<limit>
 
 ### Parameters
 
-* `q` (required): Natural language query string
-* `page` (optional): Page number (default: 0)
-* `limit` (optional): Number of results per page (default: 10, max: 50)
+| Parameter | Required | Description |
+|---|---|---|
+| `q` | Yes | Natural language query string |
+| `page` | No | Page number (default: `0`) |
+| `limit` | No | Records per page (default: `10`, max: `50`) |
 
----
+### Supported Query Patterns
 
-## Supported Query Patterns
+**Gender**
 
-The parser uses regex and keyword matching to extract filters from the query.
+| Keyword | Interpreted as |
+|---|---|
+| `male`, `men` | gender = male |
+| `female`, `women` | gender = female |
 
----
+- Case-insensitive
+- If both male and female are detected in the same query, gender filtering is ignored
 
-### 1. Gender Filtering
+**Age Groups**
 
-**Supported keywords:**
+Supported keywords: `child`, `teenager`, `adult`, `senior`
 
-* `male`
-* `female`
-* `men` → interpreted as `male`
-* `women` → interpreted as `female`
+**"Young" Shortcut**
 
-**Examples:**
+The keyword `young` translates to `age >= 16` and `age <= 24`.
 
-* `"male users"`
-* `"women in Canada"`
-* `"female adults"`
+**Minimum Age (Lower Bound)**
 
-**Behavior:**
+| Pattern | Behaviour |
+|---|---|
+| `above <n>` | age > n |
+| `over <n>` | age > n |
+| `older than <n>` | age > n |
+| `from <n>` | age >= n |
 
-* Case-insensitive
-* If both male and female are detected in the same query, **gender filtering is ignored**
+**Maximum Age (Upper Bound)**
 
----
+| Pattern | Behaviour |
+|---|---|
+| `below <n>` | age < n |
+| `under <n>` | age < n |
+| `younger than <n>` | age < n |
+| `to <n>` | age <= n |
 
-### 2. Age-Based Filtering
+**Country Filtering**
 
-#### a. Age Groups
+Accepts any valid country name from the ISO country list. Case-insensitive substring match.
 
-**Supported keywords:**
+### Combining Filters
 
-* `child`
-* `teenager`
-* `adult`
-* `senior`
-
-**Examples:**
-
-* `"adult males"`
-* `"female teenagers"`
-
----
-
-#### b. "Young" Shortcut
-
-**Keyword:**
-
-* `young`
-
-**Behavior:**
-
-* Translates to:
-
-    * `age >= 16`
-    * `age <= 24`
-
-**Example:**
-
-* `"young men"`
-
----
-
-#### c. Minimum Age (Lower Bound)
-
-**Supported patterns:**
-
-* `above <number>` → age strictly greater than
-* `over <number>` → age strictly greater than
-* `older than <number>` → age strictly greater than
-* `from <number>` → age greater than or equal to
-
-**Examples:**
-
-* `"male above 30"`
-* `"women over 25"`
-* `"female from 18"`
-
----
-
-#### d. Maximum Age (Upper Bound)
-
-**Supported patterns:**
-
-* `below <number>` → age strictly less than
-* `under <number>` → age strictly less than
-* `younger than <number>` → age strictly less than
-* `to <number>` → age less than or equal to
-
-**Examples:**
-
-* `"male below 40"`
-* `"women under 35"`
-* `"female to 25"`
-
----
-
-### 3. Country Filtering
-
-**Supported input:**
-
-* Any valid country name from ISO country list
-
-**Examples:**
-
-* `"users from Nigeria"`
-* `"female adults in Canada"`
-* `"male teenagers in Germany"`
-
-**Behavior:**
-
-* Case-insensitive substring match
-
----
-
-## Combining Filters
-
-**Examples:**
-
-* `"female adults in Canada above 25"`
-* `"young male in Nigeria"`
-* `"teenager female under 20 in France"`
-
----
-
-## Unsupported / Not Covered Scenarios
-
-### 1. Multiple Conditions for Same Filter Type ❌
-
-The API **does NOT support** queries that define different conditions for the same attribute.
-
-**Examples that will NOT work correctly:**
-
-* `"men over 30 and women under 50"`
-* `"male teenagers and female adults"`
-
-**Reason:**
-
-* The parser builds a single specification per filter type and cannot separate logic into independent groups.
-
----
-
-### 2. Logical Operators ❌
-
-**Unsupported:**
-
-* `AND`, `OR`, `NOT`
-* Grouped or nested expressions
-
-**Examples:**
-
-* `"male OR female"`
-* `"not male"`
-* `"female AND adult"`
-
-**Behavior:**
-
-* The parser ignores logical intent and simply accumulates recognized filters.
-
----
-
-### 3. Ambiguous or Unrecognized Queries ❌
-
-If no valid patterns are detected, the API returns:
+Filters can be freely combined in a single query:
 
 ```
-422 Unprocessable Entity
+female adults in Canada above 25
+young male in Nigeria
+teenager female under 20 in France
 ```
 
-**Examples:**
+### Example Queries
 
-* `"people with high probability"`
-* `"random users"`
-* `"cool profiles"`
+| Query | Interpretation |
+|---|---|
+| `female adults in Canada` | gender=female, ageGroup=adult, country=CA |
+| `young male` | gender=male, age between 16–24 |
+| `male above 30` | gender=male, age > 30 |
+| `female under 25` | gender=female, age < 25 |
+| `teenager in Nigeria` | ageGroup=teenager, country=NG |
 
----
+### Unsupported Scenarios
 
-### 4. Probability Filters ❌
+| Scenario | Example |
+|---|---|
+| Multiple conditions for the same filter | `men over 30 and women under 50` |
+| Logical operators | `male OR female`, `not male` |
+| Probability filters | not supported in NL search |
+| Sorting | not supported in NL search |
 
-Natural language search does **not support**:
-
-* Gender probability
-* Country probability
-
-(These are only available in the structured `/api/profiles` endpoint.)
-
----
-
-### 5. Sorting ❌
-
-Natural language queries do not support:
-
-* Sorting fields
-* Sort direction
+Returns `422 Unprocessable Entity` if no valid filter is detected.
 
 ---
 
-## Edge Cases & Behavior Notes
+## CSV Export
 
-* If **no valid filter is detected**, request fails with `UnprocessableEntity`
-* Queries are **order-independent** (word order does not matter)
-* Pagination defaults:
+```
+GET /api/profiles/export?format=csv
+```
 
-    * `page = 0`
-    * `limit = 10`
-    * Maximum `limit = 50`
+Supports the same filters as the profiles list endpoint. Returns a CSV attachment with columns:
 
----
-
-## Example Queries
-
-| Query                     | Interpretation                                        |
-| ------------------------- | ----------------------------------------------------- |
-| `female adults in Canada` | gender = female AND ageGroup = adult AND country = CA |
-| `young male`              | gender = male AND age between 17–23                   |
-| `male above 30`           | gender = male AND age > 30                            |
-| `female under 25`         | gender = female AND age < 25                          |
-| `teenager in Nigeria`     | ageGroup = teenager AND country = NG                  |
+```
+id, name, gender, gender_probability, age, age_group, country_id, country_name, country_probability, created_at
+```
 
 ---
 
-## Summary
+## CI/CD
 
-The natural language endpoint is a **regex-driven parser** designed for simple, keyword-based filtering. It works well for straightforward queries combining gender, age, and country, but does not support complex logic, multi-condition grouping, or advanced expressions.
+GitHub Actions runs on every pull request to `main`:
+
+- **Test** — runs the full test suite
+- **Build** — Maven build (runs only if tests pass)
+
+---
+
+## Related Repositories
+
+- [insighta-web-portal](https://github.com/bituann/insighta-web-portal) — Next.js web portal
+- [insighta-cli](https://github.com/bituann/insighta-cli) — CLI tool
