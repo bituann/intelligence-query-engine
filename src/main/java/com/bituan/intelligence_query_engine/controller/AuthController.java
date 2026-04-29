@@ -30,7 +30,7 @@ public class AuthController {
     }
 
     @GetMapping("/github/callback")
-    public ResponseEntity<AuthResponse> handleCallback (@RequestParam("code") String code, @RequestParam(value = "verifier", required = false) String verifier) {
+    public ResponseEntity<AuthResponse> handleCallback (@RequestParam(name = "code") String code, @RequestParam(name = "code_verifier", required = false) String verifier) {
         AuthResponse response = authService.signIn(code, verifier);
 
         if (verifier != null && !verifier.isBlank()) {
