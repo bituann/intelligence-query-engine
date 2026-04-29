@@ -24,10 +24,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,6 +44,13 @@ public class ProfileServiceImpl implements ProfileService {
         Page<Profile> profilePage = profileRepository.findAll(spec, pageable);
 
         return buildProfilesResponse(profilePage);
+    }
+
+    @Override
+    public List<Profile> getProfiles(ProfileFilters filters) {
+        Specification<Profile> spec = convertFiltersToDbQuery(filters);
+
+        return profileRepository.findAll(spec);
     }
 
     @Override
