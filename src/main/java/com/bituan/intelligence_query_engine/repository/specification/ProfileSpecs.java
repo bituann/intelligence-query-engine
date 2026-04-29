@@ -1,7 +1,7 @@
 package com.bituan.intelligence_query_engine.repository.specification;
 
 import com.bituan.intelligence_query_engine.exception.BadRequest;
-import com.bituan.intelligence_query_engine.model.Profile;
+import com.bituan.intelligence_query_engine.model.entity.Profile;
 import org.springframework.data.jpa.domain.Specification;
 
 public class ProfileSpecs {

@@ -7,5 +7,6 @@ import com.bituan.intelligence_query_engine.model.response.ProfileResponse;
 public interface ProfileService {
     ProfilesResponse getProfiles(GetProfilesRequestQueryModel queryParams);
     ProfilesResponse getProfilesByNaturalLanguage(String query, Integer page, Integer limit);
+    ProfileResponse getProfile(String id);
     ProfileResponse addProfile (String name);
 }

@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,6 +57,10 @@ public class ProfileServiceImpl implements ProfileService {
 
         if (limit != null && limit > 50) {
             throw new BadRequest("Limit cannot be greater than 50");
+        }
+
+        if ((limit != null && limit < 1) || (page != null && page < 1)) {
+            throw new BadRequest("Invalid limit or page");
         }
 
         boolean canParse = false;
@@ -137,9 +142,12 @@ public class ProfileServiceImpl implements ProfileService {
             Locale locale = new Locale("", iso);
             String country = locale.getDisplayCountry();
 
-            if (query.toLowerCase().contains(country.toLowerCase())) {
+            pattern = Pattern.compile("\\b" + Pattern.quote(country) + "\\b", Pattern.CASE_INSENSITIVE);
+
+            if (pattern.matcher(query).find()) {
                 spec = spec.and(profileSpecs.isCountryId(locale.getCountry()));
                 canParse = true;
+                break;
             }
         }
 
@@ -148,13 +156,23 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         // pagination
-        page = page == null ? 0 : page;
+        page = page == null ? 0 : page - 1;
         limit = limit == null ? 10 : limit;
         Pageable pageable = PageRequest.of(page, limit);
 
         Page<Profile> profilePage = profileRepository.findAll(spec, pageable);
 
         return buildProfilesResponse(profilePage);
+    }
+
+    @Override
+    public ProfileResponse getProfile(String id) {
+        Profile profile = profileRepository.findById(UUID.fromString(id)).orElseThrow(() -> new NotFound("Profile doesn't exist"));
+
+        return ProfileResponse.builder()
+                .status("success")
+                .data(profile)
+                .build();
     }
 
     @Override
@@ -211,7 +229,10 @@ public class ProfileServiceImpl implements ProfileService {
 
         return Specification
                 .where(profileSpecs.isGender(filters.getGender()))
-                .and(profileSpecs.isAgeGroup(filters.getAge_group()))
+                .and(profileSpecs.isAgeGroup(filters.getAge_group() == null
+                        ? null
+                        : filters.getAge_group().name())
+                )
                 .and(profileSpecs.isCountryId(filters.getCountry_id()))
                 .and(profileSpecs.ageGreaterThanOrEqualTo(filters.getMin_age()))
                 .and(profileSpecs.ageLessThanOrEqualTo(filters.getMax_age()))
@@ -234,8 +255,6 @@ public class ProfileServiceImpl implements ProfileService {
         ) {
             throw new BadRequest("Invalid limit or page");
         }
-
-        System.out.println(pagination.getSort_by());
 
         Sort.Direction direction = Sort.Direction.fromOptionalString(pagination.getOrder()).orElse(Sort.Direction.ASC);
         Sort sort = pagination.getSort_by() == null || pagination.getSort_by().isBlank() ? Sort.unsorted() : Sort.by(direction, toCamelCase(pagination.getSort_by()));
@@ -264,7 +283,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .totalPages(profilesPage.getTotalPages())
                 .links(ProfilesResponse.Links.builder()
                         .self(generatePaginationLink(page, limit))
-                        .next(generatePaginationLink(page + 1, limit))
+                        .next(profilesPage.hasNext() ? generatePaginationLink(page + 1, limit) : null)
                         .prev(generatePaginationLink(page - 1, limit))
                         .build()
                 )

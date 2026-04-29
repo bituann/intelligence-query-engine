@@ -30,6 +30,8 @@ public class Profile {
     private String gender;
     private double genderProbability;
     private int age;
+
+    @Enumerated(EnumType.STRING)
     private AgeGroup ageGroup;
 
     @Column(length = 2)

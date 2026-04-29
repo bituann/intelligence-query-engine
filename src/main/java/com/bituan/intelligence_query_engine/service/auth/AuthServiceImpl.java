@@ -2,9 +2,11 @@ package com.bituan.intelligence_query_engine.service.auth;
 
 import com.bituan.intelligence_query_engine.enums.UserRole;
 import com.bituan.intelligence_query_engine.exception.BadRequest;
+import com.bituan.intelligence_query_engine.exception.NotFound;
 import com.bituan.intelligence_query_engine.model.entity.RefreshToken;
 import com.bituan.intelligence_query_engine.model.entity.User;
 import com.bituan.intelligence_query_engine.model.response.AuthResponse;
+import com.bituan.intelligence_query_engine.model.response.UserResponse;
 import com.bituan.intelligence_query_engine.repository.RefreshTokenRepository;
 import com.bituan.intelligence_query_engine.repository.UserRepository;
 import com.bituan.intelligence_query_engine.service.token.TokenService;
@@ -27,6 +29,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -96,6 +99,10 @@ public class AuthServiceImpl implements AuthService {
 
         if (!userRepository.existsByGithubId(user.getGithubId())) {
             user = userRepository.save(user);
+        } else {
+            user = userRepository.findByGithubId(user.getGithubId()).orElse(null);
+            user.setLastLoginAt(ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS));
+            userRepository.save(user);
         }
 
         String jwt = tokenService.generateJwtToken(user);
@@ -129,6 +136,25 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(jwt)
                 .refreshToken(newRefreshToken)
                 .build();
+    }
+
+    @Override
+    public UserResponse getUser(String id) {
+        User user = userRepository.findById(UUID.fromString(id)).orElseThrow(() -> new NotFound("User not found"));
+
+        return UserResponse.builder()
+                .status("success")
+                .data(user)
+                .build();
+    }
+
+    @Override
+    public void logout(String id) {
+        UUID ownerId = UUID.fromString(id);
+
+        if (tokenRepository.existsByOwnerId(ownerId)) {
+            tokenRepository.deleteByOwnerId(ownerId);
+        }
     }
 
 
