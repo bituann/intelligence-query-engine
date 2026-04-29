@@ -1,5 +1,6 @@
 package com.bituan.intelligence_query_engine.model;
 
+import com.bituan.intelligence_query_engine.enums.AgeGroup;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 public class ProfileFilters {
     private String gender;
-    private String age_group;
+    private AgeGroup age_group;
     private String country_id;
     private Integer min_age;
     private Integer max_age;
