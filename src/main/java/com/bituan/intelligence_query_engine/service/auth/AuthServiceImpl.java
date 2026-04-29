@@ -148,6 +148,15 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    @Override
+    public void logout(String id) {
+        UUID ownerId = UUID.fromString(id);
+
+        if (tokenRepository.existsByOwnerId(ownerId)) {
+            tokenRepository.deleteByOwnerId(ownerId);
+        }
+    }
+
 
     private User getGitHubUser (String uri, String accessToken) {
         Map<String, String> response = webClient.get()
