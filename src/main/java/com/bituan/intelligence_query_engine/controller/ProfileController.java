@@ -23,14 +23,14 @@ public class ProfileController {
     private final ProfileRepository profileRepository;
     private final ProfileService profileService;
 
-    @GetMapping("/")
+    @GetMapping
     public ResponseEntity<ProfilesResponse> getProfiles (ProfileFilters filters, ProfilesPagination pagination) {
         GetProfilesRequestQueryModel queryParams = new GetProfilesRequestQueryModel(filters, pagination);
 
         return new ResponseEntity<>(profileService.getProfiles(queryParams), HttpStatus.OK);
     }
 
-    @PostMapping("/")
+    @PostMapping
     public ResponseEntity<ProfileResponse> addProfile (@RequestBody AddProfileRequest body) {
         return new ResponseEntity<>(profileService.addProfile(body.getName()), HttpStatus.OK);
     }
