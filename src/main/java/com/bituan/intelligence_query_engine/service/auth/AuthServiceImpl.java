@@ -2,9 +2,11 @@ package com.bituan.intelligence_query_engine.service.auth;
 
 import com.bituan.intelligence_query_engine.enums.UserRole;
 import com.bituan.intelligence_query_engine.exception.BadRequest;
+import com.bituan.intelligence_query_engine.exception.NotFound;
 import com.bituan.intelligence_query_engine.model.entity.RefreshToken;
 import com.bituan.intelligence_query_engine.model.entity.User;
 import com.bituan.intelligence_query_engine.model.response.AuthResponse;
+import com.bituan.intelligence_query_engine.model.response.UserResponse;
 import com.bituan.intelligence_query_engine.repository.RefreshTokenRepository;
 import com.bituan.intelligence_query_engine.repository.UserRepository;
 import com.bituan.intelligence_query_engine.service.token.TokenService;
@@ -27,6 +29,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -94,6 +97,8 @@ public class AuthServiceImpl implements AuthService {
 
         User user = getGitHubUser(registration.getProviderDetails().getUserInfoEndpoint().getUri(), accessToken);
 
+        // don't forget to handle last login
+
         if (!userRepository.existsByGithubId(user.getGithubId())) {
             user = userRepository.save(user);
         }
@@ -128,6 +133,16 @@ public class AuthServiceImpl implements AuthService {
                 .status("success")
                 .accessToken(jwt)
                 .refreshToken(newRefreshToken)
+                .build();
+    }
+
+    @Override
+    public UserResponse getUser(String id) {
+        User user = userRepository.findById(UUID.fromString(id)).orElseThrow(() -> new NotFound("User not found"));
+
+        return UserResponse.builder()
+                .status("success")
+                .data(user)
                 .build();
     }
 
