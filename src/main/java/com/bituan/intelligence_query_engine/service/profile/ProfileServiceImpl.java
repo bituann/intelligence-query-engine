@@ -59,6 +59,10 @@ public class ProfileServiceImpl implements ProfileService {
             throw new BadRequest("Limit cannot be greater than 50");
         }
 
+        if ((limit != null && limit < 1) || (page != null && page < 1)) {
+            throw new BadRequest("Invalid limit or page");
+        }
+
         boolean canParse = false;
 
         ProfileSpecs profileSpecs = new ProfileSpecs();
@@ -152,7 +156,7 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         // pagination
-        page = page == null ? 0 : page;
+        page = page == null ? 0 : page - 1;
         limit = limit == null ? 10 : limit;
         Pageable pageable = PageRequest.of(page, limit);
 
@@ -279,7 +283,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .totalPages(profilesPage.getTotalPages())
                 .links(ProfilesResponse.Links.builder()
                         .self(generatePaginationLink(page, limit))
-                        .next(generatePaginationLink(page + 1, limit))
+                        .next(profilesPage.hasNext() ? generatePaginationLink(page + 1, limit) : null)
                         .prev(generatePaginationLink(page - 1, limit))
                         .build()
                 )
