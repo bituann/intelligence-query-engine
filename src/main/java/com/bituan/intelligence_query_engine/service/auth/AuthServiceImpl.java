@@ -97,10 +97,12 @@ public class AuthServiceImpl implements AuthService {
 
         User user = getGitHubUser(registration.getProviderDetails().getUserInfoEndpoint().getUri(), accessToken);
 
-        // don't forget to handle last login
-
         if (!userRepository.existsByGithubId(user.getGithubId())) {
             user = userRepository.save(user);
+        } else {
+            user = userRepository.findByGithubId(user.getGithubId()).orElse(null);
+            user.setLastLoginAt(ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS));
+            userRepository.save(user);
         }
 
         String jwt = tokenService.generateJwtToken(user);
