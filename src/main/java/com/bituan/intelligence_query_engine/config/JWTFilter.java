@@ -33,7 +33,7 @@ public class JWTFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String reqPath = request.getServletPath();
 
-        return reqPath.startsWith("/auth") && !reqPath.equalsIgnoreCase("/auth/me");
+        return reqPath.startsWith("/auth/github");
     }
 
     @Override
