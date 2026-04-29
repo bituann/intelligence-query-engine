@@ -62,9 +62,15 @@ public class AuthController {
                 .build();
     }
 
-    @GetMapping("/refresh")
+    @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken (@RequestBody Map<String, String> body) {
         return new ResponseEntity<>(authService.refresh(body.get("refresh_token")), HttpStatus.OK);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout (@AuthenticationPrincipal UserDetails authUser) {
+        authService.logout(authUser.getUsername());
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/me")

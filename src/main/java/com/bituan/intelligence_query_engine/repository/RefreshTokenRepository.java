@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
     @Transactional
     void deleteByOwnerId(UUID id);
+    boolean existsByOwnerId(UUID id);
 }
