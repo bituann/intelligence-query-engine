@@ -41,7 +41,7 @@ public class AuthController {
         ResponseCookie accessCookie = ResponseCookie
                 .from("access_token", response.getAccessToken())
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .sameSite("Lax")
                 .path("/")
                 .build();
@@ -49,7 +49,7 @@ public class AuthController {
         ResponseCookie refreshCookie = ResponseCookie
                 .from("refresh_token", response.getRefreshToken())
                 .httpOnly(true)
-                .secure(false) // true in prod
+                .secure(true)
                 .sameSite("Lax")
                 .path("/")
                 .build();
