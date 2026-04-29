@@ -63,12 +63,15 @@ public class TokenServiceImpl implements TokenService {
 
     @Override
     public boolean validateJwt(String token) {
-        Jwt jwt = decodeJwt(token);
+        Jwt jwt = null;
+        try {
+            jwt = decodeJwt(token);
+        } catch (JwtValidationException e) {
+            return false;
+        }
 
         if (
                 jwt == null ||
-                jwt.getExpiresAt() == null ||
-                !jwt.getExpiresAt().isAfter(Instant.now()) ||
                 !userRepository.existsById(UUID.fromString(jwt.getSubject()))
         ) {
             return false;
