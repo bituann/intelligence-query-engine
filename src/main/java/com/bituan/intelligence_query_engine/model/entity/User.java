@@ -31,6 +31,8 @@ public class User {
     private String username;
     private String email;
     private String avatarUrl;
+
+    @Enumerated(EnumType.STRING)
     private UserRole role;
 
     @JsonProperty("is_active")
