@@ -45,9 +45,4 @@ public class AuthController {
         authService.logout(authUser.getUsername());
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
-
-    @GetMapping("/me")
-    public ResponseEntity<UserResponse> getUser (@AuthenticationPrincipal UserDetails authUser) {
-        return new ResponseEntity<>(authService.getUser(authUser.getUsername()), HttpStatus.OK);
-    }
 }
