@@ -25,8 +25,11 @@ public class AuthController {
     private final AuthService authService;
 
     @GetMapping("/github")
-    public ResponseEntity<String> requestOAuthUrl () {
-        return new ResponseEntity<>(authService.initializeGitHubOAuth(), HttpStatus.OK);
+    public ResponseEntity<String> requestOAuthUrl (@RequestParam(required = false, name = "state") String state,
+                                                   @RequestParam(required = false, name = "redirect_uri") String redirectUri,
+                                                   @RequestParam(required = false, name = "code_challenge") String codeChallenge,
+                                                   @RequestParam(required = false, name = "code_challenge_method") String codeChallengeMethod) {
+        return new ResponseEntity<>(authService.initializeGitHubOAuth(state, redirectUri ,codeChallenge ,codeChallengeMethod), HttpStatus.OK);
     }
 
     @GetMapping("/github/callback")
