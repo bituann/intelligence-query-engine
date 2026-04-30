@@ -46,19 +46,44 @@ public class AuthServiceImpl implements AuthService {
     private final WebClient webClient = WebClient.create();
 
     @Override
-    public String initializeGitHubOAuth() {
+    public String initializeGitHubOAuth(String state, String uri, String challenge, String method) {
         // generate a unique uuid and save in user session
         // this will serve as the state which you will pass as a query param
 
-        ClientRegistration githubClientRegistration = clientRegistrationRepository.findByRegistrationId("github");
+        boolean hasChallenge = challenge != null && !challenge.isBlank();
+        boolean hasMethod = method != null && !method.isBlank();
+        boolean hasState = state != null && !state.isBlank();
+
+        if (hasChallenge != hasMethod) {
+            throw new BadRequest("Code challenge and challenge method must come together or not at all");
+        }
+
+        if (hasMethod && !method.equalsIgnoreCase("S256")) {
+            throw new BadRequest("Invalid challenge method passed");
+        }
+
+        ClientRegistration registration = clientRegistrationRepository.findByRegistrationId("github");
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+
+        formData.add("client_id", registration.getClientId());
+        formData.add("redirect_uri", uri == null ? registration.getRedirectUri() : uri);
+        formData.add("request_type", "code");
+        formData.add("access-type", "offline");
+        formData.add("prompt", "consent");
+
+        if (hasChallenge) {
+            formData.add("code_challenge", challenge);
+            formData.add("code_challenge_method", method);
+        }
+
+        if (hasState) {
+            formData.add("state", state);
+        }
 
         return UriComponentsBuilder
-                .fromUriString(githubClientRegistration.getProviderDetails().getAuthorizationUri())
-                .queryParam("client_id", githubClientRegistration.getClientId())
-                .queryParam("redirect_uri", githubClientRegistration.getRedirectUri())
-                .queryParam("request_type", "code")
-                .queryParam("access-type", "offline")
-                .queryParam("prompt", "consent")
+                .fromUriString(registration.getProviderDetails().getAuthorizationUri())
+                .queryParams(formData)
                 .build()
                 .toUriString();
     }
