@@ -33,7 +33,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .authorizeHttpRequests(req -> req
-                        .requestMatchers("/auth/github", "/auth/github/**").permitAll()
+                        .requestMatchers("/auth/github", "/auth/github/**", "/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/profiles").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
