@@ -19,8 +19,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/auth")
 public class AuthController {
-    @Value("${FRONTEND_AUTH_CALLBACK}")
-    private String callback;
 
     private final AuthService authService;
 
@@ -34,35 +32,7 @@ public class AuthController {
 
     @GetMapping("/github/callback")
     public ResponseEntity<AuthResponse> handleCallback (@RequestParam(name = "code") String code, @RequestParam(name = "code_verifier", required = false) String verifier) {
-        AuthResponse response = authService.signIn(code, verifier);
-
-        if (verifier != null && !verifier.isBlank()) {
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        }
-
-        // Web flow - set cookies directly, redirect
-        ResponseCookie accessCookie = ResponseCookie
-                .from("access_token", response.getAccessToken())
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Lax")
-                .path("/")
-                .build();
-
-        ResponseCookie refreshCookie = ResponseCookie
-                .from("refresh_token", response.getRefreshToken())
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Lax")
-                .path("/")
-                .build();
-
-        return ResponseEntity
-                .status(HttpStatus.FOUND)
-                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                .header(HttpHeaders.LOCATION, callback)
-                .build();
+        return new ResponseEntity<>(authService.signIn(code, verifier), HttpStatus.OK);
     }
 
     @PostMapping("/refresh")
